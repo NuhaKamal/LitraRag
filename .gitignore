@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# LitraRag runtime files (generated, not source code)
+data/
+logs/
+*.db
+
+# Secrets
+.env
+
+# Editors and notebooks
+.vscode/
+.ipynb_checkpoints/
