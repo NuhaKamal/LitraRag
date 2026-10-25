@@ -2,6 +2,7 @@
 
 Stages import from here and never from each other.
 """
+
 import hashlib
 from dataclasses import dataclass, field
 from typing import Literal
@@ -19,18 +20,20 @@ def stable_id(*parts: str) -> str:
 @dataclass(frozen=True)
 class Page:
     """One page of text, however it was extracted."""
+
     page_number: int
     text: str
     method: ExtractionMethod
-    ocr_confidence: float | None = None   # only set when method == "ocr"
+    ocr_confidence: float | None = None  # only set when method == "ocr"
 
 
 @dataclass(frozen=True)
 class Document:
     """A loaded file. Output of the loader."""
-    doc_id: str              # hash of the file's CONTENT
+
+    doc_id: str  # hash of the file's CONTENT
     source_path: str
-    file_type: str           # "pdf", "png", "txt", ...
+    file_type: str  # "pdf", "png", "txt", ...
     pages: tuple[Page, ...]
     metadata: dict = field(default_factory=dict)
 
@@ -46,36 +49,40 @@ class Document:
 @dataclass(frozen=True)
 class Chunk:
     """A piece of a document small enough to embed. Output of the chunker."""
-    chunk_id: str            # hash of doc_id + position
+
+    chunk_id: str  # hash of doc_id + position
     doc_id: str
     text: str
     page_number: int
-    index: int               # position within the document
+    index: int  # position within the document
     metadata: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class EmbeddedChunk:
     """A chunk plus its vector. Output of the embedder."""
+
     chunk: Chunk
     vector: tuple[float, ...]
-    model: str               # which model made the vector
+    model: str  # which model made the vector
 
 
 @dataclass(frozen=True)
 class SearchHit:
     """One search result. Output of the retriever."""
+
     chunk: Chunk
     score: float
-    source: HitSource        # which search found it
+    source: HitSource  # which search found it
 
 
 @dataclass(frozen=True)
 class Answer:
     """The final result. Output of the generator."""
+
     question: str
     text: str
-    hits: tuple[SearchHit, ...]   # the sources used
+    hits: tuple[SearchHit, ...]  # the sources used
     model: str
     latency_ms: float
 
@@ -91,8 +98,7 @@ def _demo() -> None:
         Page(2, "This page was scanned.", "ocr", ocr_confidence=91.5),
     )
     doc = Document(stable_id("demo file content"), "demo.pdf", "pdf", pages)
-    log.info("Document %s: %d pages, %d via OCR",
-             doc.doc_id, doc.page_count, doc.ocr_page_count)
+    log.info("Document %s: %d pages, %d via OCR", doc.doc_id, doc.page_count, doc.ocr_page_count)
 
     chunk = Chunk(stable_id(doc.doc_id, "0"), doc.doc_id, pages[0].text, 1, 0)
     log.info("Chunk %s from page %d", chunk.chunk_id, chunk.page_number)

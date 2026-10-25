@@ -1,4 +1,5 @@
 """LitraRag logging: one setup for the whole app, console + rotating file."""
+
 import logging
 import time
 from contextlib import contextmanager
@@ -15,18 +16,16 @@ def setup_logging(level: str = "INFO", log_dir: str = "logs") -> None:
         return
 
     Path(log_dir).mkdir(parents=True, exist_ok=True)
-    fmt = logging.Formatter(
-        "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s"
-    )
+    fmt = logging.Formatter("%(asctime)s | %(levelname)-7s | %(name)s | %(message)s")
 
     console = logging.StreamHandler()
     console.setFormatter(fmt)
 
     file = RotatingFileHandler(
         Path(log_dir) / "litrarag.log",
-        maxBytes=5_000_000,   # 5 MB per file
-        backupCount=3,        # keep 3 old files, delete older
-        encoding="utf-8",     # needed for Arabic text in logs
+        maxBytes=5_000_000,  # 5 MB per file
+        backupCount=3,  # keep 3 old files, delete older
+        encoding="utf-8",  # needed for Arabic text in logs
     )
     file.setFormatter(fmt)
 

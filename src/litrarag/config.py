@@ -3,6 +3,7 @@
 Override any setting with an environment variable, e.g. in PowerShell:
     $env:RAG_LLM_URL = "https://your-name.ngrok-free.app"
 """
+
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,11 +20,12 @@ def _env(key: str, default):
 @dataclass(frozen=True)
 class ResourceLimits:
     """Knobs that control CPU, RAM and disk use. Tuned for an 8 GB laptop."""
-    embed_batch_size: int = _env("RAG_EMBED_BATCH", 16)    # chunks per embedding call
-    max_workers: int = _env("RAG_MAX_WORKERS", 2)          # parallel OCR pages
-    ocr_dpi: int = _env("RAG_OCR_DPI", 200)                # higher = sharper but slower
-    ocr_min_chars: int = _env("RAG_OCR_MIN_CHARS", 30)     # fewer chars = scanned page
-    llm_num_ctx: int = _env("RAG_NUM_CTX", 2048)           # LLM context size (uses RAM)
+
+    embed_batch_size: int = _env("RAG_EMBED_BATCH", 16)  # chunks per embedding call
+    max_workers: int = _env("RAG_MAX_WORKERS", 2)  # parallel OCR pages
+    ocr_dpi: int = _env("RAG_OCR_DPI", 200)  # higher = sharper but slower
+    ocr_min_chars: int = _env("RAG_OCR_MIN_CHARS", 30)  # fewer chars = scanned page
+    llm_num_ctx: int = _env("RAG_NUM_CTX", 2048)  # LLM context size (uses RAM)
     ollama_keep_alive: str = _env("RAG_KEEP_ALIVE", "2m")  # unload idle models
 
 
