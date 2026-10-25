@@ -4,8 +4,10 @@ Stages import from here and never from each other.
 """
 
 import hashlib
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Literal
+from types import MappingProxyType
+from typing import Any, Literal
 
 ExtractionMethod = Literal["text", "ocr"]
 HitSource = Literal["dense", "sparse", "hybrid"]
@@ -15,6 +17,13 @@ def stable_id(*parts: str) -> str:
     """Deterministic ID: the same input always gives the same ID."""
     joined = "|".join(parts)
     return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:16]
+
+
+def _freeze_metadata(obj: Any) -> None:
+    """Replace obj.metadata with a read-only copy. Called from __post_init__."""
+    # object.__setattr__ is the one allowed way to set a field on a frozen dataclass,
+    # and only during construction.
+    object.__setattr__(obj, "metadata", MappingProxyType(dict(obj.metadata)))
 
 
 @dataclass(frozen=True)
@@ -35,7 +44,10 @@ class Document:
     source_path: str
     file_type: str  # "pdf", "png", "txt", ...
     pages: tuple[Page, ...]
-    metadata: dict = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=dict, hash=False)
+
+    def __post_init__(self) -> None:
+        _freeze_metadata(self)
 
     @property
     def page_count(self) -> int:
@@ -55,7 +67,10 @@ class Chunk:
     text: str
     page_number: int
     index: int  # position within the document
-    metadata: dict = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=dict, hash=False)
+
+    def __post_init__(self) -> None:
+        _freeze_metadata(self)
 
 
 @dataclass(frozen=True)

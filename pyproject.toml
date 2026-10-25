@@ -18,6 +18,7 @@ where = ["src"]
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
     "ruff>=0.17.2",
 ]
 
@@ -34,3 +35,7 @@ select = [
     "UP",   # pyupgrade: use modern Python syntax
     "SIM",  # simplify: code that can be written more simply
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
