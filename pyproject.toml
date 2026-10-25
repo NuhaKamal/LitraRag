@@ -2,7 +2,7 @@
 name = "litrarag"
 version = "0.1.0"
 description = "LitraRag: a local RAG system with OCR, hybrid search and Ollama"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "pillow>=12.3.0",
     "pymupdf>=1.28.2",
