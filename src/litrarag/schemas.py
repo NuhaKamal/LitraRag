@@ -37,6 +37,15 @@ class Page:
 
 
 @dataclass(frozen=True)
+class OCRResult:
+    """Text read from one image. Output of an OCR engine."""
+
+    text: str
+    confidence: float  # average word confidence 0-100; 0.0 if no words found
+    word_count: int
+
+
+@dataclass(frozen=True)
 class Document:
     """A loaded file. Output of the loader."""
 
