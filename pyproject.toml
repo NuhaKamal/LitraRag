@@ -39,7 +39,10 @@ select = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: uses real external programs or services (Tesseract, Ollama, Qdrant)",
+]
 
 [tool.pyright]
 include = ["src", "tests"]
