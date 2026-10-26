@@ -121,7 +121,7 @@ def _demo() -> None:
     log.info("Same input, same ID: %s", stable_id("a") == stable_id("a"))
 
     try:
-        chunk.text = "changed!"
+        chunk.text = "changed!"  # pyright: ignore[reportAttributeAccessIssue]
     except Exception as e:
         log.info("Frozen works, change blocked: %s", type(e).__name__)
 

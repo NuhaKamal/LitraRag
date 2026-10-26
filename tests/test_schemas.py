@@ -46,13 +46,13 @@ def test_document_counts_ocr_pages():
 def test_chunk_fields_cannot_be_reassigned():
     chunk = make_chunk()
     with pytest.raises(dataclasses.FrozenInstanceError):
-        chunk.text = "changed"
+        chunk.text = "changed"  # pyright: ignore[reportAttributeAccessIssue]
 
 
 def test_chunk_metadata_cannot_be_modified():
     chunk = make_chunk(metadata={"source": "a.pdf"})
     with pytest.raises(TypeError):
-        chunk.metadata["source"] = "b.pdf"
+        chunk.metadata["source"] = "b.pdf"  # pyright: ignore[reportIndexIssue]
 
 
 def test_chunk_is_hashable():

@@ -13,7 +13,10 @@ import shutil
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from types import UnionType
-from typing import Any, Literal, Self, get_args, get_origin
+from typing import TYPE_CHECKING, Any, Literal, Self, get_args, get_origin
+
+if TYPE_CHECKING:
+    from _typeshed import DataclassInstance
 
 ENV_PREFIX = "RAG_"
 
@@ -36,7 +39,7 @@ def _convert(raw: str, target: Any, env_name: str) -> Any:
         raise ValueError(f"{env_name}={raw!r} is not a valid {target.__name__}") from err
 
 
-def _load[T](cls: type[T], **fixed: Any) -> T:
+def _load[T: DataclassInstance](cls: type[T], **fixed: Any) -> T:
     """Build a dataclass from its defaults, overridden by RAG_<FIELD> env variables.
 
     Fields given in `fixed` are used as they are, not read from the environment.

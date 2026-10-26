@@ -47,7 +47,7 @@ def test_invalid_number_gives_clear_error(monkeypatch):
 def test_settings_are_frozen():
     s = Settings.from_env()
     with pytest.raises(dataclasses.FrozenInstanceError):
-        s.chunk_size = 1
+        s.chunk_size = 1  # pyright: ignore[reportAttributeAccessIssue]
 
 
 # --- Validation ---------------------------------------------------------------
@@ -61,12 +61,12 @@ def test_invalid_qdrant_mode_from_env(monkeypatch):
 
 def test_invalid_qdrant_mode_direct():
     with pytest.raises(ValueError, match="qdrant_mode"):
-        Settings(qdrant_mode="embeded")
+        Settings(qdrant_mode="embeded")  # pyright: ignore[reportArgumentType]
 
 
 def test_invalid_log_level():
     with pytest.raises(ValueError, match="log_level"):
-        Settings(log_level="LOUD")
+        Settings(log_level="LOUD")  # pyright: ignore[reportArgumentType]
 
 
 def test_overlap_must_be_smaller_than_chunk_size():
@@ -76,7 +76,7 @@ def test_overlap_must_be_smaller_than_chunk_size():
 
 def test_all_errors_reported_together():
     with pytest.raises(ValueError) as exc_info:
-        Settings(chunk_size=0, qdrant_mode="x")
+        Settings(chunk_size=0, qdrant_mode="x")  # pyright: ignore[reportArgumentType]
     message = str(exc_info.value)
     assert "chunk_size" in message
     assert "qdrant_mode" in message
