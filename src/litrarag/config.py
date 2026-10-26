@@ -4,18 +4,29 @@ Any field can be overridden by an environment variable named
 RAG_ + the field name in uppercase. In PowerShell:
     $env:RAG_LLM_URL = "https://your-name.ngrok-free.app"
     $env:RAG_MAX_WORKERS = "1"
+
+Settings are validated on creation: invalid values fail at startup, not deep in a stage.
 """
 
 import os
+import shutil
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import Any, Self
+from types import UnionType
+from typing import Any, Literal, Self, get_args, get_origin
 
 ENV_PREFIX = "RAG_"
 
+QdrantMode = Literal["embedded", "server"]
+LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
 
-def _convert(raw: str, target: type, env_name: str) -> Any:
+
+def _convert(raw: str, target: Any, env_name: str) -> Any:
     """Convert an environment string to the field's type, with a clear error."""
+    if get_origin(target) is Literal:
+        return raw  # allowed values are checked in __post_init__
+    if isinstance(target, UnionType):  # e.g. str | None -> convert as str
+        target = next(t for t in get_args(target) if t is not type(None))
     try:
         if target is bool:
             # bool("false") is True in Python, so booleans need their own rule
@@ -41,9 +52,25 @@ def _load[T](cls: type[T], **fixed: Any) -> T:
     return cls(**values)
 
 
+def _literal_errors(obj: Any) -> list[str]:
+    """Check every Literal-typed field holds one of its allowed values."""
+    errors = []
+    for f in fields(obj):
+        if get_origin(f.type) is Literal:
+            value, allowed = getattr(obj, f.name), get_args(f.type)
+            if value not in allowed:
+                errors.append(f"{f.name}={value!r} must be one of {allowed}")
+    return errors
+
+
+def _raise_if_errors(name: str, errors: list[str]) -> None:
+    if errors:
+        raise ValueError(f"Invalid {name}: " + "; ".join(errors))
+
+
 @dataclass(frozen=True)
 class ResourceLimits:
-    """Knobs that control CPU, RAM and disk use. Tuned for an 8 GB laptop."""
+    """Knobs that control speed and resource use. Tune them; never hard-code them."""
 
     embed_batch_size: int = 16  # chunks per embedding call
     max_workers: int = 2  # parallel OCR pages
@@ -51,6 +78,20 @@ class ResourceLimits:
     ocr_min_chars: int = 30  # fewer chars = scanned page
     llm_num_ctx: int = 2048  # LLM context size (uses RAM)
     ollama_keep_alive: str = "2m"  # unload idle models
+
+    def __post_init__(self) -> None:
+        errors = _literal_errors(self)
+        if self.embed_batch_size < 1:
+            errors.append(f"embed_batch_size={self.embed_batch_size} must be >= 1")
+        if self.max_workers < 1:
+            errors.append(f"max_workers={self.max_workers} must be >= 1")
+        if not 72 <= self.ocr_dpi <= 600:
+            errors.append(f"ocr_dpi={self.ocr_dpi} must be between 72 and 600")
+        if self.ocr_min_chars < 0:
+            errors.append(f"ocr_min_chars={self.ocr_min_chars} must be >= 0")
+        if self.llm_num_ctx < 512:
+            errors.append(f"llm_num_ctx={self.llm_num_ctx} must be >= 512")
+        _raise_if_errors("ResourceLimits", errors)
 
     @classmethod
     def from_env(cls) -> Self:
@@ -63,18 +104,18 @@ class Settings:
     data_dir: Path = Path("data")
     sqlite_path: Path = Path("data/litrarag.db")
     log_dir: str = "logs"
-    log_level: str = "INFO"
+    log_level: LogLevel = "INFO"
 
-    # OCR
-    tesseract_cmd: str = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    # OCR: None means "find tesseract on PATH"
+    tesseract_cmd: str | None = None
 
-    # Vector store: "embedded" (no Docker) or "server" (Docker)
-    qdrant_mode: str = "embedded"
+    # Vector store
+    qdrant_mode: QdrantMode = "embedded"
     qdrant_path: Path = Path("data/qdrant")
     qdrant_url: str = "http://localhost:6333"
     collection: str = "litrarag"
 
-    # Models: embeddings always local, LLM local or Colab
+    # Models: embeddings local by default, LLM local or Colab
     embed_url: str = "http://localhost:11434"
     embed_model: str = "nomic-embed-text"
     llm_url: str = "http://localhost:11434"
@@ -85,6 +126,17 @@ class Settings:
     chunk_overlap: int = 100
 
     limits: ResourceLimits = field(default_factory=ResourceLimits)
+
+    def __post_init__(self) -> None:
+        errors = _literal_errors(self)
+        if self.chunk_size <= 0:
+            errors.append(f"chunk_size={self.chunk_size} must be > 0")
+        if not 0 <= self.chunk_overlap < self.chunk_size:
+            errors.append(
+                f"chunk_overlap={self.chunk_overlap} must be >= 0 "
+                f"and smaller than chunk_size={self.chunk_size}"
+            )
+        _raise_if_errors("Settings", errors)
 
     @classmethod
     def from_env(cls) -> Self:
@@ -107,10 +159,11 @@ def _demo() -> None:
     log.info("Qdrant mode: %s", settings.qdrant_mode)
     log.info("Limits: %s", settings.limits)
 
-    if Path(settings.tesseract_cmd).exists():
-        log.info("Tesseract found at %s", settings.tesseract_cmd)
+    tesseract = settings.tesseract_cmd or shutil.which("tesseract")
+    if tesseract:
+        log.info("Tesseract: %s", tesseract)
     else:
-        log.error("Tesseract NOT found at %s", settings.tesseract_cmd)
+        log.error("Tesseract not found: install it or set RAG_TESSERACT_CMD")
 
 
 if __name__ == "__main__":

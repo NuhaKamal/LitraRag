@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from litrarag.config import Settings
+from litrarag.config import ResourceLimits, Settings
 
 
 def test_defaults_when_no_env(monkeypatch):
@@ -48,3 +48,53 @@ def test_settings_are_frozen():
     s = Settings.from_env()
     with pytest.raises(dataclasses.FrozenInstanceError):
         s.chunk_size = 1
+
+
+# --- Validation ---------------------------------------------------------------
+
+
+def test_invalid_qdrant_mode_from_env(monkeypatch):
+    monkeypatch.setenv("RAG_QDRANT_MODE", "embeded")  # typo on purpose
+    with pytest.raises(ValueError, match="qdrant_mode"):
+        Settings.from_env()
+
+
+def test_invalid_qdrant_mode_direct():
+    with pytest.raises(ValueError, match="qdrant_mode"):
+        Settings(qdrant_mode="embeded")
+
+
+def test_invalid_log_level():
+    with pytest.raises(ValueError, match="log_level"):
+        Settings(log_level="LOUD")
+
+
+def test_overlap_must_be_smaller_than_chunk_size():
+    with pytest.raises(ValueError, match="chunk_overlap"):
+        Settings(chunk_size=800, chunk_overlap=900)
+
+
+def test_all_errors_reported_together():
+    with pytest.raises(ValueError) as exc_info:
+        Settings(chunk_size=0, qdrant_mode="x")
+    message = str(exc_info.value)
+    assert "chunk_size" in message
+    assert "qdrant_mode" in message
+
+
+def test_resource_limits_reject_zero_workers():
+    with pytest.raises(ValueError, match="max_workers"):
+        ResourceLimits(max_workers=0)
+
+
+# --- Tesseract default -------------------------------------------------------
+
+
+def test_tesseract_cmd_defaults_to_none(monkeypatch):
+    monkeypatch.delenv("RAG_TESSERACT_CMD", raising=False)
+    assert Settings.from_env().tesseract_cmd is None
+
+
+def test_tesseract_cmd_can_be_set_from_env(monkeypatch):
+    monkeypatch.setenv("RAG_TESSERACT_CMD", r"D:\tools\tesseract.exe")
+    assert Settings.from_env().tesseract_cmd == r"D:\tools\tesseract.exe"
