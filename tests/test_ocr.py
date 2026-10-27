@@ -1,12 +1,11 @@
 """Tests for ocr.py: pure logic as unit tests, real Tesseract as integration tests."""
 
-import shutil
-
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
 from litrarag import ocr
 from litrarag.ocr import TesseractOCR, parse_tesseract_data, resolve_tesseract
+from tests.helpers import needs_tesseract
 
 
 def tess_data(words, confs, line_nums):
@@ -66,10 +65,6 @@ def test_resolve_not_on_path_gives_clear_error(monkeypatch):
 
 
 # --- Real Tesseract: integration ---------------------------------------------
-
-needs_tesseract = pytest.mark.skipif(
-    shutil.which("tesseract") is None, reason="Tesseract is not installed"
-)
 
 
 @pytest.mark.integration
