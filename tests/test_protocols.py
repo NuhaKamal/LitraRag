@@ -2,8 +2,9 @@
 
 from PIL import Image
 
+from litrarag.chunker import LangChainChunker
 from litrarag.ocr import TesseractOCR
-from litrarag.protocols import OCREngine
+from litrarag.protocols import Chunker, OCREngine
 from tests.fakes import FakeOCR
 
 
@@ -24,3 +25,7 @@ def test_fake_ocr_counts_calls():
 
 def _tesseract_fits_protocol(engine: TesseractOCR) -> OCREngine:
     return engine  # never called: pyright checks this line statically
+
+
+def _langchain_chunker_fits_protocol(chunker: LangChainChunker) -> Chunker:
+    return chunker  # never called: pyright checks this line statically
