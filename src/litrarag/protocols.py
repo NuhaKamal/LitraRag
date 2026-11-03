@@ -4,11 +4,12 @@ schemas.py defines the DATA that flows between stages.
 This file defines what each swappable stage must be able to DO.
 """
 
+from collections.abc import Sequence
 from typing import Protocol
 
 from PIL import Image
 
-from litrarag.schemas import Chunk, Document, OCRResult
+from litrarag.schemas import Chunk, Document, OCRResult, Vector, Vectors
 
 
 class OCREngine(Protocol):
@@ -21,3 +22,21 @@ class Chunker(Protocol):
     """Anything that can split a Document into Chunks."""
 
     def split(self, doc: Document) -> tuple[Chunk, ...]: ...
+
+
+class Embedder(Protocol):
+    """Anything that turns text into vectors.
+
+    Documents and queries are separate methods because some models
+    (like nomic-embed-text) expect a different prefix for each.
+    """
+
+    @property
+    def model_name(self) -> str: ...
+
+    @property
+    def dimension(self) -> int: ...
+
+    def embed_documents(self, texts: Sequence[str]) -> Vectors: ...
+
+    def embed_query(self, text: str) -> Vector: ...

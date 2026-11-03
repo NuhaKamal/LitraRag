@@ -9,8 +9,13 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal
 
+import numpy as np
+import numpy.typing as npt
+
 ExtractionMethod = Literal["text", "ocr"]
 HitSource = Literal["dense", "sparse", "hybrid"]
+Vector = npt.NDArray[np.float32]  # one embedding, shape (dimension,)
+Vectors = npt.NDArray[np.float32]  # a batch, shape (n, dimension); row i belongs to text i
 
 
 def stable_id(*parts: str) -> str:
