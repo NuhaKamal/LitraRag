@@ -108,6 +108,7 @@ class Settings:
     sqlite_path: Path = Path("data/litrarag.db")
     log_dir: str = "logs"
     log_level: LogLevel = "INFO"
+    embedding_cache_path: Path = Path("data/cache/embeddings.db")
 
     # OCR: None means "find tesseract on PATH"
     tesseract_cmd: str | None = None

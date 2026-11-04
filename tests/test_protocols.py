@@ -5,6 +5,7 @@ from PIL import Image
 
 from litrarag.chunker import LangChainChunker
 from litrarag.embedder import OllamaEmbedder
+from litrarag.embedding_cache import CachedEmbedder
 from litrarag.ocr import TesseractOCR
 from litrarag.protocols import Chunker, Embedder, OCREngine
 from tests.fakes import FakeEmbedder, FakeOCR
@@ -71,3 +72,7 @@ def test_fake_embedder_counts_texts():
 
 def test_fake_embedder_handles_empty_batch():
     assert FakeEmbedder(dimension=8).embed_documents([]).shape == (0, 8)
+
+
+def _cached_embedder_fits_protocol(embedder: CachedEmbedder) -> Embedder:
+    return embedder  # never called: pyright checks this line statically
