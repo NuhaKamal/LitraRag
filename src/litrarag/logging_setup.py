@@ -33,6 +33,9 @@ def setup_logging(level: str = "INFO", log_dir: str = "logs") -> None:
     root.setLevel(level)
     root.addHandler(console)
     root.addHandler(file)
+    # Third-party libraries: only show their warnings and errors
+    for noisy in ("httpx", "httpcore"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     _CONFIGURED = True
 
 

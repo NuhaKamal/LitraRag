@@ -4,9 +4,14 @@ import numpy as np
 from PIL import Image
 
 from litrarag.chunker import LangChainChunker
+from litrarag.embedder import OllamaEmbedder
 from litrarag.ocr import TesseractOCR
 from litrarag.protocols import Chunker, Embedder, OCREngine
 from tests.fakes import FakeEmbedder, FakeOCR
+
+
+def _ollama_embedder_fits_protocol(embedder: OllamaEmbedder) -> Embedder:
+    return embedder  # never called: pyright checks this line statically
 
 
 def test_fake_ocr_satisfies_protocol():
