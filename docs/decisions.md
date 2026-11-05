@@ -35,3 +35,14 @@
 - Recheck on Colab GPU, where batching should matter much more.
 - Implication: on this laptop, ~3,000 chunks ≈ 14 min. The real levers are the
   embedding cache and GPU, not batching.
+
+## Embedding cache: SQLite, key = hash(model, kind, text)
+- Demo (32 texts × ~650 chars, nomic-embed-text, laptop CPU):
+  cold 11,416 ms; warm 1 ms; 4 of 32 edited 1,244 ms (only the 4 re-embedded).
+- 3,000 chunks with 1% changed: ~15 min without cache → ~9 s with it.
+- Keyed by text, not chunk_id, so identical text is never embedded twice.
+  Model and kind (document/query) are part of the key.
+- Per-page chunking limits the ripple of an edit: shifted chunk boundaries
+  stop at the page end, so only that page's chunks miss the cache.
+- The cache is a decorator (CachedEmbedder wraps any Embedder); a separate file
+  that can always be deleted safely.
