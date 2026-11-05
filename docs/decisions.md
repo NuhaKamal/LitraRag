@@ -46,3 +46,13 @@
   stop at the page end, so only that page's chunks miss the cache.
 - The cache is a decorator (CachedEmbedder wraps any Embedder); a separate file
   that can always be deleted safely.
+
+## Vector store: Qdrant embedded mode (for now)
+- No Docker: saves ~1.5–2 GB RAM on an 8 GB Windows laptop.
+- Embedded mode is a pure-Python implementation: exact brute-force search, fine for a
+  personal collection; the server (Rust, HNSW index) scales much further.
+- Embedded storage allows one process at a time: close the chat app before ingesting.
+- Switching is one setting (RAG_QDRANT_MODE=server); only open_qdrant() differs.
+- Phase 5 experiment: benchmark embedded vs server (search latency, RAM) on real documents.
+- Points store both doc_id (version) and source_path (file): an edited file gets a new
+  doc_id, so replacement is by source_path.

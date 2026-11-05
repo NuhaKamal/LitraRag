@@ -88,15 +88,6 @@ class Chunk:
 
 
 @dataclass(frozen=True)
-class EmbeddedChunk:
-    """A chunk plus its vector. Output of the embedder."""
-
-    chunk: Chunk
-    vector: tuple[float, ...]
-    model: str  # which model made the vector
-
-
-@dataclass(frozen=True)
 class SearchHit:
     """One search result. Output of the retriever."""
 

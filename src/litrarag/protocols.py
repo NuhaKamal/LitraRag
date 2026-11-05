@@ -9,7 +9,7 @@ from typing import Protocol
 
 from PIL import Image
 
-from litrarag.schemas import Chunk, Document, OCRResult, Vector, Vectors
+from litrarag.schemas import Chunk, Document, OCRResult, SearchHit, Vector, Vectors
 
 
 class OCREngine(Protocol):
@@ -40,3 +40,17 @@ class Embedder(Protocol):
     def embed_documents(self, texts: Sequence[str]) -> Vectors: ...
 
     def embed_query(self, text: str) -> Vector: ...
+
+
+class VectorStore(Protocol):
+    """Anything that stores chunk vectors and finds the nearest ones."""
+
+    def count(self) -> int: ...
+
+    def has_document(self, doc_id: str) -> bool: ...
+
+    def replace_source(
+        self, source_path: str, chunks: Sequence[Chunk], vectors: Vectors
+    ) -> None: ...
+
+    def search(self, query: Vector, k: int = 5) -> tuple[SearchHit, ...]: ...

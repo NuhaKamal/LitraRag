@@ -7,7 +7,8 @@ from litrarag.chunker import LangChainChunker
 from litrarag.embedder import OllamaEmbedder
 from litrarag.embedding_cache import CachedEmbedder
 from litrarag.ocr import TesseractOCR
-from litrarag.protocols import Chunker, Embedder, OCREngine
+from litrarag.protocols import Chunker, Embedder, OCREngine, VectorStore
+from litrarag.vector_store import QdrantVectorStore
 from tests.fakes import FakeEmbedder, FakeOCR
 
 
@@ -76,3 +77,7 @@ def test_fake_embedder_handles_empty_batch():
 
 def _cached_embedder_fits_protocol(embedder: CachedEmbedder) -> Embedder:
     return embedder  # never called: pyright checks this line statically
+
+
+def _qdrant_store_fits_protocol(store: QdrantVectorStore) -> VectorStore:
+    return store  # never called: pyright checks this line statically
