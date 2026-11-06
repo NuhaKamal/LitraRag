@@ -96,6 +96,47 @@ class SearchHit:
     source: HitSource  # which search found it
 
 
+IngestStatus = Literal["indexed", "unchanged", "failed"]
+
+
+@dataclass(frozen=True)
+class FileResult:
+    """What happened to one file during ingestion."""
+
+    path: str
+    status: IngestStatus
+    chunks: int = 0
+    seconds: float = 0.0
+    error: str | None = None
+
+
+@dataclass(frozen=True)
+class IngestReport:
+    """The outcome of ingesting a folder."""
+
+    files: tuple[FileResult, ...]
+    seconds: float
+
+    def _count(self, status: IngestStatus) -> int:
+        return sum(1 for f in self.files if f.status == status)
+
+    @property
+    def indexed(self) -> int:
+        return self._count("indexed")
+
+    @property
+    def unchanged(self) -> int:
+        return self._count("unchanged")
+
+    @property
+    def failed(self) -> int:
+        return self._count("failed")
+
+    @property
+    def chunks(self) -> int:
+        return sum(f.chunks for f in self.files)
+
+
 @dataclass(frozen=True)
 class Answer:
     """The final result. Output of the generator."""

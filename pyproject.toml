@@ -56,3 +56,6 @@ typeCheckingMode = "standard"
 venvPath = "."
 venv = ".venv"
 reportUnnecessaryTypeIgnoreComment = "warning"
+
+[project.scripts]
+litrarag = "litrarag.cli:main"

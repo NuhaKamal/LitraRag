@@ -23,6 +23,7 @@ log = get_logger(__name__)
 PDF_TYPES = {".pdf"}
 IMAGE_TYPES = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp"}
 TEXT_TYPES = {".txt", ".md"}
+SUPPORTED_TYPES = PDF_TYPES | IMAGE_TYPES | TEXT_TYPES
 
 
 class UnsupportedFileError(ValueError):
