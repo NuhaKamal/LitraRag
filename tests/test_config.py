@@ -98,3 +98,8 @@ def test_tesseract_cmd_defaults_to_none(monkeypatch):
 def test_tesseract_cmd_can_be_set_from_env(monkeypatch):
     monkeypatch.setenv("RAG_TESSERACT_CMD", r"D:\tools\tesseract.exe")
     assert Settings.from_env().tesseract_cmd == r"D:\tools\tesseract.exe"
+
+
+def test_candidates_must_cover_top_k():
+    with pytest.raises(ValueError, match="retrieval_candidates"):
+        Settings(top_k=10, retrieval_candidates=5)

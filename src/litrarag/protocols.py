@@ -66,3 +66,9 @@ class KeywordIndex(Protocol):
     def replace_source(self, source_path: str, chunks: Sequence[Chunk]) -> None: ...
 
     def search(self, query: str, k: int = 5) -> tuple[SearchHit, ...]: ...
+
+
+class Retriever(Protocol):
+    """Anything that finds the chunks most relevant to a question."""
+
+    def retrieve(self, question: str, k: int = 5) -> tuple[SearchHit, ...]: ...

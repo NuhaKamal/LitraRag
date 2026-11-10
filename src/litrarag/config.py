@@ -140,7 +140,18 @@ class Settings:
                 f"chunk_overlap={self.chunk_overlap} must be >= 0 "
                 f"and smaller than chunk_size={self.chunk_size}"
             )
+        if self.top_k < 1:
+            errors.append(f"top_k={self.top_k} must be >= 1")
+        if self.retrieval_candidates < self.top_k:
+            errors.append(
+                f"retrieval_candidates={self.retrieval_candidates} must be >= top_k={self.top_k}"
+            )
         _raise_if_errors("Settings", errors)
+
+    # Retrieval
+    top_k: int = 4  # chunks sent to the LLM (4 × ~800 chars fits a 2048-token context)
+    retrieval_candidates: int = 20  # fetched from EACH retriever before fusion
+    rrf_k: int = 60  # RRF smoothing constant (standard value)
 
     @classmethod
     def from_env(cls) -> Self:
