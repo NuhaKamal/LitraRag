@@ -64,3 +64,9 @@
 - Unchanged re-run: 0.1 s for the ingest loop (hash + one lookup per file),
   excluding process startup.
 - Biggest remaining lever for first-time ingestion: GPU embedding (Colab).
+
+## Backfill and the shifting bottleneck
+- Keyword backfill of 888 cached chunks: 22.2 s (vs 254.9 s first ingestion).
+- New bottleneck: embedded Qdrant storing, 14.1 s (~16 ms/chunk), vs FTS5 0.13 s.
+- Pipeline now writes only to the store that is missing a document version.
+- Strong input for the Phase 5 embedded-vs-server Qdrant benchmark.

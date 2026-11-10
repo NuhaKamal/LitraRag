@@ -4,12 +4,12 @@ schemas.py defines the DATA that flows between stages.
 This file defines what each swappable stage must be able to DO.
 """
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import Protocol
 
 from PIL import Image
 
-from litrarag.schemas import Chunk, Document, OCRResult, SearchHit, Vector, Vectors
+from litrarag.schemas import Answer, Chunk, Document, OCRResult, SearchHit, Vector, Vectors
 
 
 class OCREngine(Protocol):
@@ -72,3 +72,13 @@ class Retriever(Protocol):
     """Anything that finds the chunks most relevant to a question."""
 
     def retrieve(self, question: str, k: int = 5) -> tuple[SearchHit, ...]: ...
+
+
+class Generator(Protocol):
+    """Anything that answers a question from retrieved chunks."""
+
+    model_name: str
+
+    def answer(self, question: str, hits: Sequence[SearchHit]) -> Answer: ...
+
+    def stream(self, question: str, hits: Sequence[SearchHit]) -> Iterator[str]: ...

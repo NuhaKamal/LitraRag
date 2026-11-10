@@ -25,3 +25,9 @@ needs_ollama_embeddings = pytest.mark.skipif(
     not ollama_has_model("nomic-embed-text"),
     reason="Ollama with nomic-embed-text is not running",
 )
+
+
+needs_ollama_llm = pytest.mark.skipif(
+    not ollama_has_model("llama3.2"),
+    reason="Ollama with llama3.2 is not running",
+)
