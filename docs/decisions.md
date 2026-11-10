@@ -56,3 +56,11 @@
 - Phase 5 experiment: benchmark embedded vs server (search latency, RAM) on real documents.
 - Points store both doc_id (version) and source_path (file): an edited file gets a new
   doc_id, so replacement is by source_path.
+
+## First real ingestion (laptop CPU, Qdrant embedded)
+- 4 files (280-page manual, 2 smaller PDFs, 1 text file) → 888 chunks in 254.9 s.
+- Embedding ~92% of total (3.7 texts/s, as the benchmark predicted).
+  Loading + OCR ~3%, chunking ~0%, Qdrant storing ~3% (~10 ms per chunk).
+- Unchanged re-run: 0.1 s for the ingest loop (hash + one lookup per file),
+  excluding process startup.
+- Biggest remaining lever for first-time ingestion: GPU embedding (Colab).

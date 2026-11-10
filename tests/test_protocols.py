@@ -6,8 +6,9 @@ from PIL import Image
 from litrarag.chunker import LangChainChunker
 from litrarag.embedder import OllamaEmbedder
 from litrarag.embedding_cache import CachedEmbedder
+from litrarag.keyword_index import SQLiteKeywordIndex
 from litrarag.ocr import TesseractOCR
-from litrarag.protocols import Chunker, Embedder, OCREngine, VectorStore
+from litrarag.protocols import Chunker, Embedder, KeywordIndex, OCREngine, VectorStore
 from litrarag.vector_store import QdrantVectorStore
 from tests.fakes import FakeEmbedder, FakeOCR
 
@@ -81,3 +82,7 @@ def _cached_embedder_fits_protocol(embedder: CachedEmbedder) -> Embedder:
 
 def _qdrant_store_fits_protocol(store: QdrantVectorStore) -> VectorStore:
     return store  # never called: pyright checks this line statically
+
+
+def _keyword_index_fits_protocol(index: SQLiteKeywordIndex) -> KeywordIndex:
+    return index  # never called: pyright checks this line statically
