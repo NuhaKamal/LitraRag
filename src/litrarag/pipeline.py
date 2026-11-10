@@ -14,10 +14,11 @@ from litrarag.chunker import LangChainChunker
 from litrarag.config import Settings
 from litrarag.embedder import EmbeddingError, OllamaEmbedder
 from litrarag.embedding_cache import CachedEmbedder, SQLiteVectorCache
+from litrarag.keyword_index import SQLiteKeywordIndex
 from litrarag.loader import SUPPORTED_TYPES, DocumentLoader, file_id
 from litrarag.logging_setup import get_logger
 from litrarag.ocr import TesseractOCR
-from litrarag.protocols import Chunker, Embedder, VectorStore
+from litrarag.protocols import Chunker, Embedder, KeywordIndex, VectorStore
 from litrarag.schemas import FileResult, IngestReport
 from litrarag.vector_store import QdrantVectorStore, open_qdrant
 
@@ -25,7 +26,7 @@ log = get_logger(__name__)
 
 
 class IngestPipeline:
-    """file -> Document -> Chunks -> vectors -> vector store, skipping unchanged files."""
+    """file -> Document -> Chunks -> vectors + keywords, skipping unchanged files."""
 
     def __init__(
         self,
@@ -34,24 +35,29 @@ class IngestPipeline:
         chunker: Chunker,
         embedder: Embedder,
         store: VectorStore,
+        keywords: KeywordIndex,
     ) -> None:
         self.loader = loader
         self.chunker = chunker
         self.embedder = embedder
         self.store = store
+        self.keywords = keywords
 
     def ingest_file(self, path: Path) -> FileResult:
         source = str(path.resolve())  # one identity per file, however the path was typed
         start = time.perf_counter()
         try:
             doc_id = file_id(path)
-            if self.store.has_document(doc_id):  # unchanged: skip ALL the work
+            # Unchanged only if BOTH stores have this version; otherwise re-process
+            # (cheap when the embeddings are cached)
+            if self.store.has_document(doc_id) and self.keywords.has_document(doc_id):
                 return FileResult(source, "unchanged", seconds=time.perf_counter() - start)
 
             doc = self.loader.load(path)
             chunks = self.chunker.split(doc)
             vectors = self.embedder.embed_documents([chunk.text for chunk in chunks])
             self.store.replace_source(source, chunks, vectors)
+            self.keywords.replace_source(source, chunks)
         except EmbeddingError:
             raise  # the service is down: every remaining file would fail the same way
         except Exception as err:
@@ -108,7 +114,7 @@ def format_report(report: IngestReport) -> str:
 
 @contextmanager
 def open_pipeline(settings: Settings) -> Iterator[IngestPipeline]:
-    """Build the real pipeline from settings; close the cache and Qdrant afterwards."""
+    """Build the real pipeline from settings; close the stores afterwards."""
     limits = settings.limits
     loader = DocumentLoader(
         TesseractOCR(cmd=settings.tesseract_cmd),
@@ -118,7 +124,10 @@ def open_pipeline(settings: Settings) -> Iterator[IngestPipeline]:
     )
     chunker = LangChainChunker(chunk_size=settings.chunk_size, chunk_overlap=settings.chunk_overlap)
 
-    with SQLiteVectorCache(settings.embedding_cache_path) as cache:
+    with (
+        SQLiteVectorCache(settings.embedding_cache_path) as cache,
+        SQLiteKeywordIndex(settings.sqlite_path) as keywords,
+    ):
         embedder = CachedEmbedder(
             OllamaEmbedder(
                 settings.embed_model,
@@ -137,6 +146,12 @@ def open_pipeline(settings: Settings) -> Iterator[IngestPipeline]:
                 model_name=embedder.model_name,
                 dimension=embedder.dimension,  # asks Ollama now: fails fast if it's down
             )
-            yield IngestPipeline(loader=loader, chunker=chunker, embedder=embedder, store=store)
+            yield IngestPipeline(
+                loader=loader,
+                chunker=chunker,
+                embedder=embedder,
+                store=store,
+                keywords=keywords,
+            )
         finally:
             client.close()

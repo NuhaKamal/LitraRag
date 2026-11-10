@@ -1,4 +1,5 @@
-"""End-to-end ingestion tests: real loader, chunker and Qdrant; fake OCR and embeddings."""
+"""End-to-end ingestion tests: real loader, chunker, Qdrant and keyword index;
+fake OCR and embeddings."""
 
 from pathlib import Path
 
@@ -8,6 +9,8 @@ from qdrant_client import QdrantClient
 from litrarag.chunker import LangChainChunker
 from litrarag.cli import main
 from litrarag.embedder import EmbeddingError
+from litrarag.embedding_cache import CachedEmbedder, SQLiteVectorCache
+from litrarag.keyword_index import SQLiteKeywordIndex
 from litrarag.loader import DocumentLoader
 from litrarag.pipeline import IngestPipeline, format_report
 from litrarag.schemas import FileResult, IngestReport
@@ -26,14 +29,17 @@ class FailingEmbedder(FakeEmbedder):
 def setup():
     embedder = FakeEmbedder(dimension=256)
     client = QdrantClient(":memory:")
+    keywords = SQLiteKeywordIndex(":memory:")
     store = QdrantVectorStore(client, collection="t", model_name=embedder.model_name, dimension=256)
     pipeline = IngestPipeline(
         loader=DocumentLoader(FakeOCR()),
         chunker=LangChainChunker(chunk_size=200, chunk_overlap=20),
         embedder=embedder,
         store=store,
+        keywords=keywords,
     )
     yield pipeline, embedder, store
+    keywords.close()
     client.close()
 
 
@@ -55,6 +61,14 @@ def test_new_file_is_indexed_and_searchable(setup, tmp_path):
     assert result.chunks == 1
     hits = store.search(embedder.embed_query("tesseract scanned pages"), k=1)
     assert "Tesseract" in hits[0].chunk.text
+
+
+def test_new_file_is_keyword_searchable(setup, tmp_path):
+    pipeline, _, _ = setup
+    pipeline.ingest_file(
+        write(tmp_path / "manual.txt", "Error AIQ001440 means the battery is low.")
+    )
+    assert "AIQ001440" in pipeline.keywords.search("AIQ001440")[0].chunk.text
 
 
 def test_unchanged_file_is_skipped_without_work(setup, tmp_path):
@@ -79,6 +93,7 @@ def test_edited_file_replaces_old_chunks(setup, tmp_path):
 
     assert result.status == "indexed"
     assert store.count() == 1
+    assert pipeline.keywords.count() == 1
     hit = store.search(embedder.embed_query("original version"), k=1)[0]
     assert "rewritten" in hit.chunk.text
 
@@ -93,6 +108,7 @@ def test_same_file_through_different_paths_is_one_source(setup, tmp_path):
     pipeline.ingest_file(tmp_path / "sub" / ".." / "notes.txt")  # same file, other spelling
 
     assert store.count() == 1
+    assert pipeline.keywords.count() == 1
 
 
 def test_broken_file_is_reported_not_raised(setup, tmp_path):
@@ -106,21 +122,59 @@ def test_broken_file_is_reported_not_raised(setup, tmp_path):
     assert result.error
 
 
+def test_file_missing_from_keyword_index_is_reindexed_from_cache(tmp_path):
+    client = QdrantClient(":memory:")
+    try:
+        with (
+            SQLiteVectorCache(":memory:") as cache,
+            SQLiteKeywordIndex(":memory:") as old_index,
+            SQLiteKeywordIndex(":memory:") as new_index,
+        ):
+            inner = FakeEmbedder(dimension=256)
+            embedder = CachedEmbedder(inner, cache)
+            store = QdrantVectorStore(
+                client, collection="t", model_name=embedder.model_name, dimension=256
+            )
+            path = write(tmp_path / "notes.txt", "Text indexed before keyword search existed.")
+
+            def pipeline_with(keywords):
+                return IngestPipeline(
+                    loader=DocumentLoader(FakeOCR()),
+                    chunker=LangChainChunker(),
+                    embedder=embedder,
+                    store=store,
+                    keywords=keywords,
+                )
+
+            pipeline_with(old_index).ingest_file(path)
+            embedded_before = inner.texts_embedded
+
+            result = pipeline_with(new_index).ingest_file(path)  # vectors exist, keywords don't
+
+            assert result.status == "indexed"
+            assert new_index.count() == 1
+            assert inner.texts_embedded == embedded_before  # vectors came from the cache
+    finally:
+        client.close()
+
+
 def test_embedding_service_failure_stops_the_run(tmp_path):
     client = QdrantClient(":memory:")
     try:
-        pipeline = IngestPipeline(
-            loader=DocumentLoader(FakeOCR()),
-            chunker=LangChainChunker(),
-            embedder=FailingEmbedder(),
-            store=QdrantVectorStore(
-                client, collection="t", model_name="fake-embedder", dimension=64
-            ),
-        )
-        write(tmp_path / "a.txt", "first file")
-        write(tmp_path / "b.txt", "second file")
-        with pytest.raises(EmbeddingError):
-            pipeline.ingest_folder(tmp_path)
+        with SQLiteKeywordIndex(":memory:") as keywords:
+            pipeline = IngestPipeline(
+                loader=DocumentLoader(FakeOCR()),
+                chunker=LangChainChunker(),
+                embedder=FailingEmbedder(),
+                store=QdrantVectorStore(
+                    client, collection="t", model_name="fake-embedder", dimension=64
+                ),
+                keywords=keywords,
+            )
+            write(tmp_path / "a.txt", "first file")
+            write(tmp_path / "b.txt", "second file")
+            with pytest.raises(EmbeddingError):
+                pipeline.ingest_folder(tmp_path)
     finally:
         client.close()
 
