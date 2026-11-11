@@ -32,7 +32,8 @@ class SQLiteKeywordIndex:
     def __init__(self, path: Path | str) -> None:
         if str(path) != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(path)
+        # Streamlit may call us from different threads; Chat serializes access with a lock
+        self._conn = sqlite3.connect(path, check_same_thread=False)
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA synchronous=NORMAL")
         # Only `text` is searched; UNINDEXED columns are stored alongside it

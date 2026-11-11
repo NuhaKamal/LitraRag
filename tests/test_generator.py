@@ -4,7 +4,7 @@ import pytest
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 
 from litrarag.generator import LangChainGenerator
-from litrarag.prompts import NO_CONTEXT_REPLY, RAG_PROMPT_V1, format_context
+from litrarag.prompts import NO_CONTEXT_REPLY, RAG_PROMPT_V1, RAG_PROMPT_V2, format_context
 from litrarag.schemas import Chunk, SearchHit
 from tests.helpers import needs_ollama_llm
 
@@ -36,10 +36,18 @@ def test_prompt_contains_rules_context_and_question():
     assert messages[1].content == "What is it?"
 
 
+def test_v2_puts_context_next_to_the_question():
+    messages = RAG_PROMPT_V2.format_messages(context="[1] some passage", question="What is it?")
+    assert "outside knowledge" in messages[0].content
+    assert "[1] some passage" in messages[1].content
+    assert "What is it?" in messages[1].content
+
+
 def test_curly_braces_in_chunk_text_are_safe():
     context = format_context([make_hit("Use {placeholder} syntax.")])
-    messages = RAG_PROMPT_V1.format_messages(context=context, question="q")
-    assert "{placeholder}" in messages[0].content
+    for prompt in (RAG_PROMPT_V1, RAG_PROMPT_V2):
+        messages = prompt.format_messages(context=context, question="q")
+        assert any("{placeholder}" in message.content for message in messages)
 
 
 # --- Generator ----------------------------------------------------------------------
@@ -76,8 +84,17 @@ def test_no_hits_skips_the_llm():
 
 @pytest.mark.integration
 @needs_ollama_llm
-def test_real_llama_answers_from_the_context():
+def test_real_llama_answers_when_the_context_has_it():
     generator = LangChainGenerator("llama3.2:1b")
     hits = [make_hit("The capital of Testland is Bloomtown.")]
     answer = generator.answer("What is the capital of Testland?", hits)
     assert "Bloomtown" in answer.text
+
+
+@pytest.mark.integration
+@needs_ollama_llm
+def test_real_llama_declines_when_the_context_lacks_it():
+    generator = LangChainGenerator("llama3.2:1b")
+    hits = [make_hit("Squats train the quadriceps and glutes.")]
+    answer = generator.answer("What is the capital of France?", hits)
+    assert "could not find" in answer.text.lower()

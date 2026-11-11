@@ -36,7 +36,8 @@ class SQLiteVectorCache:
     def __init__(self, path: Path | str) -> None:
         if str(path) != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(path)
+        # Streamlit may call us from different threads; Chat serializes access with a lock
+        self._conn = sqlite3.connect(path, check_same_thread=False)
         self._conn.execute("PRAGMA journal_mode=WAL")  # faster writes, readers not blocked
         self._conn.execute("PRAGMA synchronous=NORMAL")  # safe with WAL, fewer disk syncs
         self._conn.execute(

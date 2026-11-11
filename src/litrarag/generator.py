@@ -13,7 +13,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 
 from litrarag.logging_setup import get_logger
-from litrarag.prompts import NO_CONTEXT_REPLY, RAG_PROMPT_V1, format_context
+from litrarag.prompts import DEFAULT_PROMPT, NO_CONTEXT_REPLY, format_context
 from litrarag.schemas import Answer, SearchHit
 
 log = get_logger(__name__)
@@ -34,7 +34,7 @@ class LangChainGenerator:
         num_ctx: int = 2048,
         keep_alive: str = "2m",
         temperature: float = 0.1,
-        prompt: ChatPromptTemplate = RAG_PROMPT_V1,
+        prompt: ChatPromptTemplate = DEFAULT_PROMPT,
         llm: BaseChatModel | None = None,
     ) -> None:
         self.model_name = model
