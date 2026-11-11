@@ -34,6 +34,7 @@ class LangChainGenerator:
         num_ctx: int = 2048,
         keep_alive: str = "2m",
         temperature: float = 0.1,
+        max_tokens: int = 300,
         prompt: ChatPromptTemplate = DEFAULT_PROMPT,
         llm: BaseChatModel | None = None,
     ) -> None:
@@ -45,6 +46,8 @@ class LangChainGenerator:
             num_ctx=num_ctx,  # context window: more = more RAM
             keep_alive=keep_alive,  # unload the model from RAM when idle
             temperature=temperature,  # low = stick closely to the context
+            num_predict=max_tokens,  # cap answer length: bounds time and runaway text
+            stop=["\nQuestion:", "\nContext:"],  # don't let the model write new Q&A turns
         )
         self._chain = prompt | self._llm | StrOutputParser()
 

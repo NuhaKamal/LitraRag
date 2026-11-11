@@ -8,7 +8,7 @@ from collections.abc import Sequence
 
 import streamlit as st
 
-from litrarag.chat import Chat, cited_hits, start_chat
+from litrarag.chat import Chat, clean_question, sources_for, start_chat
 from litrarag.config import Settings
 from litrarag.generator import GenerationError
 from litrarag.logging_setup import setup_logging
@@ -25,11 +25,11 @@ def get_chat() -> Chat:
     return start_chat(settings)
 
 
-def show_sources(cited: Sequence[tuple[int, SearchHit]]) -> None:
-    if not cited:
+def show_sources(label: str, shown: Sequence[tuple[int, SearchHit]]) -> None:
+    if not shown:
         return
-    with st.expander(f"Sources ({len(cited)})"):
-        for n, hit in cited:
+    with st.expander(f"{label} ({len(shown)})"):
+        for n, hit in shown:
             source = hit.chunk.metadata.get("source", "unknown")
             st.markdown(f"**[{n}] {source}, page {hit.chunk.page_number}**")
             preview = hit.chunk.text[:400]
@@ -52,9 +52,10 @@ if "messages" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-        show_sources(message.get("sources", []))
+        show_sources(message.get("label", ""), message.get("sources", []))
 
-if question := st.chat_input("Ask about your documents"):
+if raw_question := st.chat_input("Ask about your documents"):
+    question = clean_question(raw_question)
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
         st.markdown(question)
@@ -68,7 +69,9 @@ if question := st.chat_input("Ask about your documents"):
         except GenerationError as err:
             st.error(str(err))
             st.stop()
-        cited = cited_hits(text, hits)
-        show_sources(cited)
+        label, shown = sources_for(text, hits)
+        show_sources(label, shown)
 
-    st.session_state.messages.append({"role": "assistant", "content": text, "sources": cited})
+    st.session_state.messages.append(
+        {"role": "assistant", "content": text, "label": label, "sources": shown}
+    )

@@ -2,7 +2,7 @@
 
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 
-from litrarag.chat import Chat, cited_hits
+from litrarag.chat import Chat, cited_hits, clean_question, sources_for
 from litrarag.generator import LangChainGenerator
 from litrarag.schemas import Chunk, SearchHit
 
@@ -37,6 +37,33 @@ def test_cited_hits_ignore_numbers_out_of_range():
 
 def test_answer_without_citations_has_no_sources():
     assert cited_hits("I could not find this in your documents.", make_hits(4)) == []
+
+
+def test_clean_question_strips_wrapping_quotes():
+    assert clean_question('  "Why does the author avoid back squats?" ') == (
+        "Why does the author avoid back squats?"
+    )
+    assert clean_question("“Curly quotes?”") == "Curly quotes?"
+
+
+def test_clean_question_keeps_inner_quotes():
+    assert clean_question('What does "RDL" mean?') == 'What does "RDL" mean?'
+
+
+def test_sources_for_prefers_cited_passages():
+    label, shown = sources_for("Squats work the quads [2].", make_hits(3))
+    assert label == "Cited sources"
+    assert [n for n, _ in shown] == [2]
+
+
+def test_sources_for_refusal_shows_nothing():
+    assert sources_for("I could not find this in your documents.", make_hits(3)) == ("", [])
+
+
+def test_sources_for_uncited_answer_shows_retrieved_passages():
+    label, shown = sources_for("Squats work the quads.", make_hits(3))
+    assert label == "Retrieved passages"
+    assert [n for n, _ in shown] == [1, 2, 3]
 
 
 # --- Chat ---------------------------------------------------------------------------

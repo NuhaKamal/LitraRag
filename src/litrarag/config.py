@@ -81,6 +81,7 @@ class ResourceLimits:
     ocr_min_chars: int = 30  # fewer chars = scanned page
     llm_num_ctx: int = 2048  # LLM context size (uses RAM)
     ollama_keep_alive: str = "2m"  # unload idle models
+    llm_max_tokens: int = 300  # cap answer length: bounds time and runaway text
 
     def __post_init__(self) -> None:
         errors = _literal_errors(self)
@@ -94,6 +95,8 @@ class ResourceLimits:
             errors.append(f"ocr_min_chars={self.ocr_min_chars} must be >= 0")
         if self.llm_num_ctx < 512:
             errors.append(f"llm_num_ctx={self.llm_num_ctx} must be >= 512")
+        if self.llm_max_tokens < 16:
+            errors.append(f"llm_max_tokens={self.llm_max_tokens} must be >= 16")
         _raise_if_errors("ResourceLimits", errors)
 
     @classmethod

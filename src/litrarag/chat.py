@@ -16,6 +16,8 @@ from litrarag.schemas import SearchHit
 from litrarag.search import open_retrievers
 
 _CITATION = re.compile(r"\[(\d+)\]")
+_QUOTES = "\"'“”‘’"
+_REFUSALS = ("could not find", "couldn't find")
 
 
 def cited_hits(text: str, hits: Sequence[SearchHit]) -> list[tuple[int, SearchHit]]:
@@ -26,6 +28,28 @@ def cited_hits(text: str, hits: Sequence[SearchHit]) -> list[tuple[int, SearchHi
         if 1 <= n <= len(hits) and n not in numbers:  # ignore invented numbers like [9]
             numbers.append(n)
     return [(n, hits[n - 1]) for n in numbers]
+
+
+def clean_question(text: str) -> str:
+    """Trim spaces and one pair of wrapping quotes. Inner quotes are kept. Pure."""
+    text = text.strip()
+    if len(text) >= 2 and text[0] in _QUOTES and text[-1] in _QUOTES:
+        text = text[1:-1].strip()
+    return text
+
+
+def sources_for(text: str, hits: Sequence[SearchHit]) -> tuple[str, list[tuple[int, SearchHit]]]:
+    """Which sources to show, and under what label. Pure.
+
+    Cited passages when the answer cites any; nothing when it declines;
+    otherwise every retrieved passage, labelled honestly as 'retrieved'.
+    """
+    cited = cited_hits(text, hits)
+    if cited:
+        return "Cited sources", cited
+    if any(refusal in text.lower() for refusal in _REFUSALS):
+        return "", []
+    return "Retrieved passages", list(enumerate(hits, start=1))
 
 
 class Chat:
@@ -66,6 +90,7 @@ def start_chat(settings: Settings) -> Chat:
             base_url=settings.llm_url,
             num_ctx=settings.limits.llm_num_ctx,
             keep_alive=settings.limits.ollama_keep_alive,
+            max_tokens=settings.limits.llm_max_tokens,
         )
     except BaseException:
         resources.close()  # if anything fails, release what was already opened
