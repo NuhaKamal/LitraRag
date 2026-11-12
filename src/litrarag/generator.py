@@ -5,7 +5,7 @@ Callers get LitraRag's Answer, or text pieces, and never see LangChain types.
 """
 
 import time
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
@@ -36,10 +36,12 @@ class LangChainGenerator:
         temperature: float = 0.1,
         max_tokens: int = 300,
         prompt: ChatPromptTemplate = DEFAULT_PROMPT,
+        context_formatter: Callable[[Sequence[SearchHit]], str] = format_context,
         llm: BaseChatModel | None = None,
     ) -> None:
         self.model_name = model
         self.base_url = base_url
+        self._format_context = context_formatter
         self._llm = llm or ChatOllama(
             model=model,
             base_url=base_url,
@@ -67,7 +69,7 @@ class LangChainGenerator:
         first_piece_ms: float | None = None
         try:
             for piece in self._chain.stream(
-                {"context": format_context(hits), "question": question}
+                {"context": self._format_context(hits), "question": question}
             ):
                 if first_piece_ms is None:
                     first_piece_ms = (time.perf_counter() - start) * 1000

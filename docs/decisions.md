@@ -70,3 +70,14 @@
 - New bottleneck: embedded Qdrant storing, 14.1 s (~16 ms/chunk), vs FTS5 0.13 s.
 - Pipeline now writes only to the store that is missing a document version.
 - Strong input for the Phase 5 embedded-vs-server Qdrant benchmark.
+
+## Prompt choice and the limits of llama3.2:1b
+- Compared V1, V2, V3 × with/without file-page labels (scripts/compare_prompts.py),
+  3 runs each, on two cases: answer from a single short passage, and decline when
+  the context lacks the answer.
+- Every variant declined correctly (except V1, which echoed a passage label).
+- No variant answered from a single short passage: llama3.2:1b over-refuses there.
+  With real chunks (~800 chars, 4 passages) it answers in the chat.
+- Kept V2 + labels: never hallucinated, answers real questions.
+- The single-passage test is marked xfail; expect it to pass with a larger model
+  (Colab gemma2:9b), which is the real fix.

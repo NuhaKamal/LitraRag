@@ -40,6 +40,20 @@ RAG_PROMPT_V2 = ChatPromptTemplate.from_messages(
     ]
 )
 
+# V3: answering is the default; refusing is the exception. Ends with "Answer:".
+RAG_PROMPT_V3 = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "Answer the question using the context passages. Do not use outside knowledge. "
+            "Keep the answer short. You may cite passages like [1]. "
+            "Only if none of the passages answers the question, say: "
+            "'I could not find this in your documents.'",
+        ),
+        ("human", "Context:\n{context}\n\nQuestion: {question}\nAnswer:"),
+    ]
+)
+
 DEFAULT_PROMPT = RAG_PROMPT_V2
 
 NO_CONTEXT_REPLY = "I couldn't find anything about that in your documents."
@@ -52,3 +66,8 @@ def format_context(hits: Sequence[SearchHit]) -> str:
         source = hit.chunk.metadata.get("source", "unknown")
         blocks.append(f"[{n}] ({source}, page {hit.chunk.page_number})\n{hit.chunk.text}")
     return "\n\n".join(blocks)
+
+
+def format_context_plain(hits: Sequence[SearchHit]) -> str:
+    """Number each passage, without file and page labels. Pure."""
+    return "\n\n".join(f"[{n}] {hit.chunk.text}" for n, hit in enumerate(hits, start=1))
