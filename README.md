@@ -19,9 +19,12 @@ No cloud services, no API keys: documents, vectors and models all stay on your c
 
 ## How it works
 
-![LitraRag workflow](docs/workflow.gif)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/workflow-dark.gif">
+  <img alt="LitraRag workflow" src="docs/workflow.gif">
+</picture>
 
-Ingestion **writes** the stores; the chat **reads** them.
+```
 INGESTION   uv run litrarag ingest data/raw
   file → loader (+ OCR) → chunker → cached embedder ─┬─▶ Qdrant (vectors)
                                                      └─▶ SQLite FTS5 (keywords)
