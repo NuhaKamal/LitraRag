@@ -20,7 +20,7 @@ No cloud services, no API keys: documents, vectors and models all stay on your c
 ## How it works
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/workflow-dark.gif">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/workflow.gif">
   <img alt="LitraRag workflow" src="docs/workflow.gif">
 </picture>
 
